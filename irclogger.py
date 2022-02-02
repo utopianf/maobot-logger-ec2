@@ -1,13 +1,9 @@
-import asyncio
 import errno
-import functools
+import json
 import logging
 import os
-import select
 import sys
 import threading
-import time
-import json
 
 import irc.bot
 import irc.client
@@ -32,14 +28,14 @@ class ReactorWithEvent(irc.client.Reactor):
         else:
             logging.debug("reactor: blocking")
             event.clear()
-            messages = json.load(incoming_messages_json)
+            messages = incoming_messages_json
             for m in messages:
-                message = m['channel'], '[{0}] {1}'.format(
+                message = '[{0}] {1}'.format(
                     m['nickname'], m['content'])
                 if m['command'] == 'PRIVMSG':
-                    self.connections[0].privmsg(message)
+                    self.connections[0].privmsg(m['channel'], message)
                 elif m['command'] == 'NOTICE':
-                    self.connections[0].notice(message)
+                    self.connections[0].notice(m['channel'], message)
             logging.debug("reactor: clearing")
             event.set()
 
@@ -48,7 +44,7 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
 
     def __init__(self, target):
         irc.bot.SingleServerIRCBot.__init__(
-            self, [("irc.ircnet.ne.jp", 6667)], "maobot_test", "maobot_test")
+            self, [("irc.ircnet.ne.jp", 6667)], "maobot_test", "maobot_test",)
         self.reactor = ReactorWithEvent()
         self.connection = self.reactor.server()
         self.reactor.add_global_handler("all_events", self._dispatcher, -10)
@@ -79,22 +75,23 @@ def wait_records():
     logging.debug("records: clearing")
     event.set()
     while True:
-        with open(FIFO, 'r') as fifo:
+        messages = os.listdir('/tmp/messages')
+        if len(messages) > 0:
             logging.debug("records: blocking")
             event.clear()
-            while True:
-                data = fifo.read()
-                if len(data) == 0:
-                    logging.debug("records: wait")
-                    event.wait()
-                    logging.debug("records: continuing")
-                    break
-                incoming_messages_json = data
+            message = '/tmp/messages/{0}'.format(
+                sorted(messages, key=lambda x: int(x))[0])
+            with open(message, 'r') as m:
+                incoming_messages_json = json.load(m)
+            os.remove(message)
+            logging.debug("records: wait")
+            event.wait()
+            logging.debug("records: continuing")
 
 
 if __name__ == "__main__":
     try:
-        os.mkfifo(FIFO)
+        os.mkdir("/tmp/messages")
 
     except OSError as oe:
         if oe.errno != errno.EEXIST:
