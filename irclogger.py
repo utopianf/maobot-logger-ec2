@@ -44,7 +44,7 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
 
     def __init__(self, target):
         irc.bot.SingleServerIRCBot.__init__(
-            self, [("irc.ircnet.ne.jp", 6667)], "maobot_test", "maobot_test",)
+            self, [("irc.atw-inter.net", 6667)], "maobot_test", "maobot_test",)
         self.reactor = ReactorWithEvent()
         self.connection = self.reactor.server()
         self.reactor.add_global_handler("all_events", self._dispatcher, -10)
