@@ -1,0 +1,13 @@
+version: '3'
+services:
+  logger:
+    build: .
+    environment:
+      - IRC_SERVER=${IRC_SERVER}
+      - BOT_NICKNAME=${BOT_NICKNAME}
+      - API_URL=${API_URL}
+      - USER_POOL_ID=${USER_POOL_ID}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - /tmp/to_irc:/tmp/to_irc

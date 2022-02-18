@@ -1,0 +1,6 @@
+.env
+.vscode
+.github
+Pipfile
+Pipfile.lock
+README.md
