@@ -1,3 +1,4 @@
+import asyncio
 import errno
 import json
 import logging
@@ -5,20 +6,19 @@ import os
 import sys
 import threading
 from typing import List
+from urllib.parse import urlparse
 
 import boto3
-import dotenv
 import irc.bot
 import irc.client
 from boto3.session import Session as AWSSession
-from gql_py import Gql
-from requests import Session
-from requests_aws4auth import AWS4Auth
+from gql import gql, Client
+from gql.transport.aiohttp import AIOHTTPTransport
+from gql.transport.appsync_auth import AppSyncIAMAuthentication
+
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
-
-dotenv.load_dotenv()
 
 FIFO = "/tmp/to_irc"
 incoming_event = threading.Event()
@@ -48,31 +48,28 @@ class ReactorWithEvent(irc.client.Reactor):
 
 class API:
     def __init__(self) -> None:
+        print(os.getenv("AWS_ACCESS_KEY_ID"))
         aws = AWSSession(
             aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
             aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
         )
         credentials = aws.get_credentials().get_frozen_credentials()
 
-        session = Session()
-        session.auth = AWS4Auth(
-            credentials.access_key,
-            credentials.secret_key,
-            aws.region_name,
-            "appsync",
-            session_token=credentials.token,
+        auth = AppSyncIAMAuthentication(
+            host=str(urlparse(os.getenv("API_URL")).netloc),
+            credentials=credentials,
+            region_name=aws.region_name
         )
-        session.headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        }
+        self.transport = AIOHTTPTransport(
+            url=os.getenv("API_URL"),
+            auth=auth
+        )
 
-        self.api = Gql(api=os.getenv("API_URL"), session=session)
         self.user_pool_id = os.getenv("USER_POOL_ID")
         if not self.user_pool_id:
             raise
 
-    def send_post(self, nickname, channel, content, command) -> None:
+    async def send_post(self, nickname, channel, content, command) -> None:
         cognito = boto3.client("cognito-idp")
         users = cognito.list_users(
             UserPoolId=self.user_pool_id, AttributesToGet=["nickname"]
@@ -80,26 +77,34 @@ class API:
         nickname_userid_map = {u["Attributes"][0]
                                ["Value"]: u["Username"] for u in users}
         owner_id = nickname_userid_map[nickname.replace("_", "")]
-        query = """
-        mutation ($channel: String!, $content: String!,
-                  $nickname: String, $owner: String, $command: Command) {
-            createPost(input: {channel: $channel, command: $command,
-                                content: $content, from: IRC,
-                                nickname: $nickname, owner: $owner}) {
-                id
+
+        async with Client(
+            transport=self.transport, fetch_schema_from_transport=False
+        ) as session:
+            query = gql("""
+            mutation ($channel: String!, $content: String!,
+                    $nickname: String, $owner: String, $command: Command) {
+                createPost(input: {channel: $channel, command: $command,
+                                    content: $content, from: IRC,
+                                    nickname: $nickname, owner: $owner}) {
+                    id
+                }
             }
-        }
 
-        """
+        """)
 
-        variables = {"channel": channel, "content": content,
-                     "nickname": nickname, "owner": owner_id,
-                     "command": command}
-        res = self.api.send(query=query, variables=variables)
-        logging.debug(res)
+            variables = {"channel": channel, "content": content,
+                         "nickname": nickname, "owner": owner_id,
+                         "command": command}
+            res = await session.execute(query, variables=variables)
+            logging.debug(res)
 
     def get_channels(self) -> List[str]:
-        query = """
+        client = Client(
+            transport=self.transport, fetch_schema_from_transport=True
+        )
+
+        query = gql("""
             query ListChannels {
                 listChannels {
                     items {
@@ -107,9 +112,9 @@ class API:
                     }
                 }
             }
-        """
-        response = self.api.send(query=query)
-        items = response.data['listChannels']['items']
+        """)
+        response = client.execute(query)
+        items = response['listChannels']['items']
         return list(map(lambda c: c['name'], items))
 
 
@@ -149,16 +154,16 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
         channel = event.target
         content = event.arguments[0]
 
-        self.api.send_post(nickname=nickname, channel=channel,
-                           content=content, command="PRIVMSG")
+        asyncio.run(self.api.send_post(nickname=nickname, channel=channel,
+                                       content=content, command="PRIVMSG"))
 
     def on_pubnotice(self, connection, event):
         nickname = irc.client.NickMask(event.source).nick.replace("_", "")
         channel = event.target
         content = event.arguments[0]
 
-        self.api.send_post(nickname=nickname, channel=channel,
-                           content=content, command="NOTICE")
+        asyncio.run(self.api.send_post(nickname=nickname, channel=channel,
+                                       content=content, command="NOTICE"))
 
 
 def ircbot():

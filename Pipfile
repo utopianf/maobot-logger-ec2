@@ -8,13 +8,15 @@ irc = "*"
 "jaraco.logging" = "*"
 boto3 = "*"
 queuelib = "*"
-gql-py = "*"
 requests-aws4auth = "*"
+python-dotenv = "*"
 
 [dev-packages]
 autopep8 = "*"
 flake8 = "*"
-python-dotenv = "*"
 
 [requires]
 python_version = "3.8"
+
+[packages.gql]
+extras = [ "botocore", "aiohttp",]
