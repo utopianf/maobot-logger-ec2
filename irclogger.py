@@ -16,6 +16,8 @@ from gql import gql, Client
 from gql.transport.aiohttp import AIOHTTPTransport
 from gql.transport.appsync_auth import AppSyncIAMAuthentication
 
+from dotenv import load_dotenv
+load_dotenv()
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
@@ -74,9 +76,16 @@ class API:
         users = cognito.list_users(
             UserPoolId=self.user_pool_id, AttributesToGet=["nickname"]
         )["Users"]
-        nickname_userid_map = {u["Attributes"][0]
-                               ["Value"]: u["Username"] for u in users}
-        owner_id = nickname_userid_map[nickname.replace("_", "")]
+        nickname_userid_map = {}
+        for u in users:
+            nicknames = u["Attributes"][0]["Value"].split(",")
+            for n in nicknames:
+                nickname_userid_map[n] = u["Username"]
+        _nickname = nickname.replace("_", "")
+        if _nickname not in nickname_userid_map:
+            owner_id = nickname_userid_map["maobot"]
+        else:
+            owner_id = nickname_userid_map[_nickname]
 
         async with Client(
             transport=self.transport, fetch_schema_from_transport=False
@@ -96,7 +105,7 @@ class API:
             variables = {"channel": channel, "content": content,
                          "nickname": nickname, "owner": owner_id,
                          "command": command}
-            res = await session.execute(query, variables=variables)
+            res = await session.execute(query, variable_values=variables)
             logging.debug(res)
 
     def get_channels(self) -> List[str]:
