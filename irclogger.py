@@ -3,9 +3,11 @@ import errno
 import json
 import logging
 import os
+import re
 import sys
 import threading
 from typing import List
+import unicodedata
 from urllib.parse import urlparse
 
 import boto3
@@ -36,14 +38,20 @@ class ReactorWithEvent(irc.client.Reactor):
         else:
             logging.debug("reactor: blocking")
             incoming_event.clear()
-            messages = incoming_messages_json
-            for m in messages:
-                if m:
-                    message = "[{0}] {1}".format(m["nickname"], m["content"])
-                    if m["command"] == "PRIVMSG":
-                        self.connections[0].privmsg(m["channel"], message)
-                    elif m["command"] == "NOTICE":
-                        self.connections[0].notice(m["channel"], message)
+            if incoming_messages_json is not None:
+                messages = incoming_messages_json
+                for m in messages:
+                    if m:
+                        message = "[{0}] {1}".format(
+                            m["nickname"], m["content"])
+                        normalized_message = unicodedata.normalize(
+                            'NFKC', message)
+                        if m["command"] == "PRIVMSG":
+                            self.connections[0].privmsg(
+                                m["channel"], normalized_message)
+                        elif m["command"] == "NOTICE":
+                            self.connections[0].notice(
+                                m["channel"], normalized_message)
             logging.debug("reactor: clearing")
             incoming_event.set()
 
@@ -81,7 +89,7 @@ class API:
             nicknames = u["Attributes"][0]["Value"].split(",")
             for n in nicknames:
                 nickname_userid_map[n] = u["Username"]
-        _nickname = nickname.replace("_", "")
+        _nickname = re.sub('_+$', '', nickname)
         if _nickname not in nickname_userid_map:
             owner_id = nickname_userid_map["maobot"]
         else:
@@ -198,7 +206,11 @@ def wait_records():
                 sorted(messages, key=lambda x: int(x))[0]
             )
             with open(message, "r") as m:
-                incoming_messages_json = json.load(m)
+                try:
+                    incoming_messages_json = json.load(m)
+                except json.JSONDecodeError:
+                    logging.debug("record ERROR")
+                    incoming_messages_json = None
             os.remove(message)
             logging.debug("records: wait")
             incoming_event.wait()
