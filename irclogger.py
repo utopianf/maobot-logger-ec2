@@ -7,7 +7,6 @@ import re
 import sys
 import threading
 from typing import List
-import unicodedata
 from urllib.parse import urlparse
 
 import boto3
@@ -29,7 +28,14 @@ incoming_event = threading.Event()
 incoming_messages_json = ""
 
 
+class ISO2022JPConnection(irc.client.ServerConnection):
+    def encode(self, msg):
+        return msg.encode(self.transmit_encoding, 'namereplace')
+
+
 class ReactorWithEvent(irc.client.Reactor):
+    connection_class = ISO2022JPConnection
+
     def process_once(self, timeout=0):
         super().process_once(timeout)
         global incoming_messages_json
@@ -44,14 +50,12 @@ class ReactorWithEvent(irc.client.Reactor):
                     if m:
                         message = "[{0}] {1}".format(
                             m["nickname"], m["content"])
-                        normalized_message = unicodedata.normalize(
-                            'NFKC', message)
                         if m["command"] == "PRIVMSG":
                             self.connections[0].privmsg(
-                                m["channel"], normalized_message)
+                                m["channel"], message)
                         elif m["command"] == "NOTICE":
                             self.connections[0].notice(
-                                m["channel"], normalized_message)
+                                m["channel"], message)
             logging.debug("reactor: clearing")
             incoming_event.set()
 
