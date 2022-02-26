@@ -156,6 +156,7 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
             "dcc_disconnect", self._dcc_disconnect, -10)
 
         self.connection.buffer_class.encoding = encoding
+        self.connection.buffer_class.errors = "replace"
         self.connection.transmit_encoding = encoding
 
         self.api = API()
