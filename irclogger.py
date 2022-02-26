@@ -172,7 +172,8 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
         sys.exit(0)
 
     def on_pubmsg(self, connection, event):
-        nickname = irc.client.NickMask(event.source).nick.replace("_", "")
+        nickname = irc.client.NickMask(event.source).nick
+        if nickname.endswith("_"): nickname = nickname[:-1]
         channel = event.target
         content = event.arguments[0]
 
@@ -180,7 +181,8 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
                                        content=content, command="PRIVMSG"))
 
     def on_pubnotice(self, connection, event):
-        nickname = irc.client.NickMask(event.source).nick.replace("_", "")
+        nickname = irc.client.NickMask(event.source).nick
+        if nickname.endswith("_"): nickname = nickname[:-1]
         channel = event.target
         content = event.arguments[0]
 
