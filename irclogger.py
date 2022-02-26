@@ -141,7 +141,7 @@ class API:
 
 class IRCLogger(irc.bot.SingleServerIRCBot):
     def __init__(self, server, nickname,  port=6667,
-                 encoding="iso-2022-jp"):
+                 encoding="iso-2022-jp-ext"):
         irc.bot.SingleServerIRCBot.__init__(
             self,
             [(server, port)],
