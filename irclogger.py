@@ -173,7 +173,8 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
 
     def on_pubmsg(self, connection, event):
         nickname = irc.client.NickMask(event.source).nick
-        if nickname.endswith("_"): nickname = nickname[:-1]
+        if nickname.endswith("_"):
+            nickname = nickname[:-1]
         channel = event.target
         content = event.arguments[0]
 
@@ -182,7 +183,8 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
 
     def on_pubnotice(self, connection, event):
         nickname = irc.client.NickMask(event.source).nick
-        if nickname.endswith("_"): nickname = nickname[:-1]
+        if nickname.endswith("_"):
+            nickname = nickname[:-1]
         channel = event.target
         content = event.arguments[0]
 
