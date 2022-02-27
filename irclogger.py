@@ -115,7 +115,7 @@ class API:
         """)
 
             variables = {"channel": channel, "content": content,
-                         "nickname": nickname, "owner": owner_id,
+                         "nickname": _nickname, "owner": owner_id,
                          "command": command}
             res = await session.execute(query, variable_values=variables)
             logging.debug(res)
@@ -173,8 +173,6 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
 
     def on_pubmsg(self, connection, event):
         nickname = irc.client.NickMask(event.source).nick
-        if nickname.endswith("_"):
-            nickname = nickname[:-1]
         channel = event.target
         content = event.arguments[0]
 
@@ -183,8 +181,6 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
 
     def on_pubnotice(self, connection, event):
         nickname = irc.client.NickMask(event.source).nick
-        if nickname.endswith("_"):
-            nickname = nickname[:-1]
         channel = event.target
         content = event.arguments[0]
 
