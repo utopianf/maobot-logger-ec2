@@ -48,8 +48,9 @@ class ReactorWithEvent(irc.client.Reactor):
                 messages = incoming_messages_json
                 for m in messages:
                     if m:
+                        content = re.sub('\r\n|\n|\r', ' ', m["content"])
                         message = "[{0}] {1}".format(
-                            m["nickname"], m["content"])
+                            m["nickname"], content)
                         if m["command"] == "PRIVMSG":
                             self.connections[0].privmsg(
                                 m["channel"], message)
