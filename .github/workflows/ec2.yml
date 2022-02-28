@@ -20,6 +20,6 @@ jobs:
           ssh-keyscan -H "$hosts" > ~/.ssh/known_hosts
       - name: Deploy
         run: |
-          ssh ${{ secrets.EC2_URL }} 'kill `ps ux | grep irclogger.py -m1 | awk "{print \\$2}"`'
-          ssh ${{ secrets.EC2_URL }} 'cd maobot-logger-ec2; git pull origin main; pip install -r requirements.txt'
-          ssh ${{ secrets.EC2_URL }} 'nohup python3 maobot-logger-ec2/irclogger.py </dev/null >/dev/null 2>&1 &'
+          ssh ${{ secrets.EC2_URL }} -i ~/.ssh/id_rsa 'kill `ps ux | grep irclogger.py -m1 | awk "{print \\$2}"`'
+          ssh ${{ secrets.EC2_URL }} -i ~/.ssh/id_rsa 'cd maobot-logger-ec2; git pull origin main; pip install -r requirements.txt'
+          ssh ${{ secrets.EC2_URL }} -i ~/.ssh/id_rsa 'nohup python3 maobot-logger-ec2/irclogger.py </dev/null >/dev/null 2>&1 &'
