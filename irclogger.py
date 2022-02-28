@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import threading
+import base64
 from typing import List
 from urllib.parse import urlparse
 
@@ -213,7 +214,9 @@ def wait_records():
             )
             with open(message, "r") as m:
                 try:
-                    incoming_messages_json = json.load(m)
+                    base64_m = m.read()
+                    json_str = base64.b64decode(base64_m).decode()
+                    incoming_messages_json = json.loads(json_str)
                 except json.JSONDecodeError:
                     logging.debug("record ERROR")
                     incoming_messages_json = None
