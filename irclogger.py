@@ -96,6 +96,8 @@ class API:
             for n in nicknames:
                 nickname_userid_map[n] = u["Username"]
         _nickname = re.sub('_+$', '', nickname)
+        if not re.match(r"[a-zA-Z][a-zA-Z0-9_]*", _nickname):
+            return
         if _nickname not in nickname_userid_map:
             owner_id = nickname_userid_map["maobot"]
         else:
