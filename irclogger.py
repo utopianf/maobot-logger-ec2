@@ -96,8 +96,6 @@ class API:
             for n in nicknames:
                 nickname_userid_map[n] = u["Username"]
         _nickname = re.sub('_+$', '', nickname)
-        if not re.match(r"[a-zA-Z][a-zA-Z0-9_]*", _nickname):
-            return
         if _nickname not in nickname_userid_map:
             owner_id = nickname_userid_map["maobot"]
         else:
@@ -177,6 +175,8 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
 
     def on_pubmsg(self, connection, event):
         nickname = irc.client.NickMask(event.source).nick
+        if not re.search(r"^[a-zA-Z][a-zA-Z0-9_]*$", nickname):
+            return
         channel = event.target
         content = event.arguments[0]
 
@@ -185,6 +185,8 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
 
     def on_pubnotice(self, connection, event):
         nickname = irc.client.NickMask(event.source).nick
+        if not re.search(r"^[a-zA-Z][a-zA-Z0-9_]*$", nickname):
+            return
         channel = event.target
         content = event.arguments[0]
 
