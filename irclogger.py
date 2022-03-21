@@ -21,8 +21,9 @@ from gql.transport.appsync_auth import AppSyncIAMAuthentication
 from dotenv import load_dotenv
 load_dotenv()
 
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
+fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+logging.basicConfig(format=fmt)
+logging.getLogger().setLevel(logging.INFO)
 
 FIFO = "/tmp/to_irc"
 incoming_event = threading.Event()
@@ -52,6 +53,8 @@ class ReactorWithEvent(irc.client.Reactor):
                         content = re.sub('\r\n|\n|\r', ' ', m["content"].replace('\0', ''))
                         message = "[{0}] {1}".format(
                             m["nickname"], content)
+                        logging.info("From LOG To {0} ({1}): {2}".format(
+                            m["channel"], m["command"], message))
                         if m["command"] == "PRIVMSG":
                             self.connections[0].privmsg(
                                 m["channel"], message)
@@ -179,7 +182,8 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
             return
         channel = event.target
         content = event.arguments[0]
-
+        logging.info("From {0} To LOG (PRIVMSG, {1}): {2}".format(
+            channel, nickname, content))
         asyncio.run(self.api.send_post(nickname=nickname, channel=channel,
                                        content=content, command="PRIVMSG"))
 
@@ -189,7 +193,8 @@ class IRCLogger(irc.bot.SingleServerIRCBot):
             return
         channel = event.target
         content = event.arguments[0]
-
+        logging.info("From {0} To LOG (NOTICE, {1}): {2}".format(
+            channel, nickname, content))
         asyncio.run(self.api.send_post(nickname=nickname, channel=channel,
                                        content=content, command="NOTICE"))
 

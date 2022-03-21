@@ -22,4 +22,4 @@ jobs:
         run: |
           ssh ubuntu@$EC2_URL 'if [ `ps ux | grep irclogger.py | wc -l` = 2 ]; then kill `ps ux | grep irclogger.py -m1 | awk "{print \\$2}"`; fi'
           ssh ubuntu@$EC2_URL 'cd maobot-logger-ec2; git pull origin main; pip install -r requirements.txt'
-          ssh ubuntu@$EC2_URL 'nohup python3 maobot-logger-ec2/irclogger.py </dev/null >/dev/null 2>&1 &'
+          ssh ubuntu@$EC2_URL 'nohup python3 maobot-logger-ec2/irclogger.py </dev/null >maobot-info.log 2>&1 &'
