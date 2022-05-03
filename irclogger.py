@@ -44,8 +44,7 @@ class ReactorWithEvent(irc.client.Reactor):
         if incoming_event.is_set():
             pass
         else:
-            logging.debug("reactor: blocking")
-            incoming_event.clear()
+            logging.debug("reactor: blocking (event != set)")
             if incoming_messages_json is not None:
                 messages = incoming_messages_json
                 for m in messages:
@@ -61,7 +60,7 @@ class ReactorWithEvent(irc.client.Reactor):
                         elif m["command"] == "NOTICE":
                             self.connections[0].notice(
                                 m["channel"], message)
-            logging.debug("reactor: clearing")
+            logging.debug("reactor: clearing (event.set)")
             incoming_event.set()
 
 
@@ -211,13 +210,11 @@ def ircbot():
 
 def wait_records():
     global incoming_messages_json
-    logging.debug("records: clearing")
+    logging.debug("records: clearing (event.set)")
     incoming_event.set()
     while True:
         messages = os.listdir("/tmp/messages")
         if len(messages) > 0:
-            logging.debug("records: blocking")
-            incoming_event.clear()
             message = "/tmp/messages/{0}".format(
                 sorted(messages, key=lambda x: int(x))[0]
             )
@@ -230,9 +227,11 @@ def wait_records():
                     logging.debug("record ERROR")
                     incoming_messages_json = None
             os.remove(message)
-            logging.debug("records: wait")
+            logging.debug("records: blocking (event.clear)")
+            incoming_event.clear()
+            logging.debug("records: wait (event.wait)")
             incoming_event.wait()
-            logging.debug("records: continuing")
+            logging.debug("records: continuing (event == set)")
 
 
 if __name__ == "__main__":
