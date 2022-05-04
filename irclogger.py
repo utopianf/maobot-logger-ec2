@@ -55,15 +55,23 @@ class ReactorWithEvent(irc.client.Reactor):
                             m["nickname"], content)
                         logging.info("From LOG To {0} ({1}): {2}".format(
                             m["channel"], m["command"], message))
-                        if m["command"] == "PRIVMSG":
-                            self.connections[0].privmsg(
-                                m["channel"], message)
-                        elif m["command"] == "NOTICE":
-                            self.connections[0].notice(
-                                m["channel"], message)
+                        self.post_IRC(m["command"], m["channel"], message)
             logging.debug("reactor: clearing")
             incoming_event.set()
 
+    def post_IRC(self, command, channel, message):
+        try:
+            if command == "PRIVMSG":
+                self.connections[0].privmsg(
+                    channel, message)
+            elif command == "NOTICE":
+                self.connections[0].notice(
+                    channel, message)
+        except MessageTooLong:
+            message1 = message[:len(message)//2]
+            message2 = message[len(message)//2:]
+            self.post_IRC(command, channel, message1)
+            self.post_IRC(command, channel, message2)
 
 class API:
     def __init__(self) -> None:
