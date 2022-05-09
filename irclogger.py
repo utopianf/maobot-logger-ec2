@@ -66,7 +66,7 @@ class ReactorWithEvent(irc.client.Reactor):
             elif command == "NOTICE":
                 self.connections[0].notice(
                     channel, message)
-        except MessageTooLong:
+        except irc.client.MessageTooLong:
             message1 = message[:len(message)//2]
             message2 = message[len(message)//2:]
             self.post_IRC(command, channel, message1)
