@@ -23,4 +23,4 @@ jobs:
           ssh ubuntu@$EC2_URL 'killall python3; echo "killall exit status: $?"'
           ssh ubuntu@$EC2_URL 'cd maobot-logger-ec2; git pull origin main; pip install -r requirements.txt'
           ssh ubuntu@$EC2_URL 'cp maobot-info.log maobot-info-`date +%Y%m%d%H%M%S`.log'
-          ssh ubuntu@$EC2_URL 'nohup python3 maobot-logger-ec2/irclogger.py </dev/null >maobot-info.log 2>&1 &'
+          ssh ubuntu@$EC2_URL 'cd maobot-logger-ec2; nohup python3 irclogger.py </dev/null >../maobot-info.log 2>&1 &'
