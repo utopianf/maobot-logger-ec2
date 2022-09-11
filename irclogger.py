@@ -7,6 +7,7 @@ import re
 import sys
 import threading
 import base64
+import time
 from typing import List
 from urllib.parse import urlparse
 
@@ -66,6 +67,7 @@ class ReactorWithEvent(irc.client.Reactor):
             elif command == "NOTICE":
                 self.connections[0].notice(
                     channel, message)
+            time.sleep(1)
         except irc.client.MessageTooLong:
             message1 = message[:len(message)//2]
             message2 = message[len(message)//2:]
